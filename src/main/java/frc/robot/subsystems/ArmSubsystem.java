@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.Java_Is_UnderControl.Motors.SparkMAXMotor;
 import frc.robot.Constants;
 
 public class ArmSubsystem extends SubsystemBase implements AutoCloseable {
@@ -38,8 +39,10 @@ public class ArmSubsystem extends SubsystemBase implements AutoCloseable {
   private final PIDController m_controller = new PIDController(m_armKp, 0.5, 07);
   private final Encoder m_encoder =
       new Encoder(Constants.kEncoderAChannel, Constants.kEncoderBChannel);
-  private final SparkMax m_motor = new SparkMax(Constants.kMotorPort, MotorType.kBrushed);
-  private final XboxController xboxController = new XboxController(1);
+  
+      private final XboxController xboxController = new XboxController(1);
+      private final SparkMAXMotor armMotor = new SparkMAXMotor(12, "armMotor");
+
 
   // Simulation classes help us simulate what's going on, including gravity.
   // This arm sim represents an arm that can travel from -75 degrees (rotated down front)
@@ -90,7 +93,7 @@ public class ArmSubsystem extends SubsystemBase implements AutoCloseable {
   public void simulationPeriodic() {
     // In this method, we update our simulation of what our arm is doing
     // First, we set our "inputs" (voltages)
-    m_armSim.setInput(m_motor.get() * RobotController.getBatteryVoltage());
+    m_armSim.setInput(armMotor.getDutyCycleSetpoint() * RobotController.getBatteryVoltage());
 
     // Next, we update it. The standard loop time is 20ms.
     m_armSim.update(0.020);
@@ -120,22 +123,22 @@ public class ArmSubsystem extends SubsystemBase implements AutoCloseable {
     var pidOutput =
         m_controller.calculate(
             m_encoder.getDistance(), Units.degreesToRadians(m_armSetpointDegrees));
-    m_motor.setVoltage(pidOutput);
+    armMotor.setVoltage(pidOutput);
   }
 public double getArmInput(){
-return m_motor.get();
+return armMotor.getDutyCycleSetpoint();
 }
 
 public void runArm(){
-  m_motor.set(0.5);
+  armMotor.set(0.5);
 }
 
 public void runArmInverse(){
-  m_motor.set(-0.5);
+  armMotor.set(-0.5);
 }
 
   public void stop() {
-    m_motor.set(0.0);
+    armMotor.set(0.0);
   }
 
   public void periodic(){
@@ -153,7 +156,6 @@ public void runArmInverse(){
 
   @Override
   public void close() {
-    m_motor.close();
     m_encoder.close();
     m_mech2d.close();
     m_armPivot.close();
